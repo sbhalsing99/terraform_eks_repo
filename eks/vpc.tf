@@ -1,23 +1,34 @@
-module "vpc" {
+module "eks" {
 
-  source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 5.0"
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 20.0"
 
-  name            = local.name
-  cidr            = local.vpc_cidr
-  azs             = local.azs
-  public_subnets  = local.public_subnets
-  private_subnets = local.private_subnets
-  intra_subnets   = local.intra_subnets
+  cluster_name                   = local.name
+  cluster_endpoint_public_access = true
 
-  enable_nat_gateway = true
+  vpc_id                   = module.vpc.vpc_id
+  subnet_ids               = module.vpc.private_subnets
+  control_plane_subnet_ids = module.vpc.private_subnets
 
-  public_subnet_tags = {
-    "kubernetes.io/role/elb" = 1
+  eks_managed_node_group_defaults = {
+    instance_types = ["t3.medium"]
+    attach_cluster_primary_security_group = true
   }
 
-  private_subnet_tags = {
-    "kubernetes.io/role/internal-elb" = 1
+  eks_managed_node_groups = {
+    bankapp-ng = {
+      min_size     = 2
+      max_size     = 3
+      desired_size = 2
+
+      instance_types = ["t3.medium"]
+      capacity_type  = "ON_DEMAND"
+
+      tags = {
+        ExtraTag = "MyCluster"
+      }
+    }
   }
 
+  tags = local.tags
 }
